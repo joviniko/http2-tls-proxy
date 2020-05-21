@@ -1,0 +1,30 @@
+version: '3'
+services:
+  backend: 
+    image: nginx:latest
+    volumes:
+      - ./html/:/usr/share/nginx/html/
+      - ./backend-ssl/:/etc/nginx/ssl/
+      - ./TLS-config/TLS1.2-PFS-params.conf:/etc/nginx/conf.d/ssl-params.conf
+      - ./nginx-config/nginx-backend-http2.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      backend:
+        aliases:
+          - backend.demo
+
+  sslsplit:
+    build:
+      context: .
+      dockerfile: Dockerfile.sslsplit
+    image: sslsplit
+    volumes:
+      - ./pcapfiles/:/pcapfiles/
+      - ./backend-ssl/:/ssl/
+    networks:
+      - backend
+    command: sslsplit -D -k /ssl/nginx-selfsigned.key -c /ssl/nginx-selfsigned.crt http 127.0.0.1 8080 orf.at 443
+    ports:
+      - "8080:8080"
+
+networks:
+  backend:
