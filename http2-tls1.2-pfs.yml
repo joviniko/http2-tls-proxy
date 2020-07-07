@@ -8,21 +8,24 @@ services:
       - ./TLS-config/TLS1.2-PFS-params.conf:/etc/nginx/conf.d/ssl-params.conf
       - ./nginx-config/nginx-backend-http2.conf:/etc/nginx/conf.d/default.conf
     networks:
-      backend:
-        aliases:
-          - backend.demo
+      - backend
+    ports:
+      - "8081:443"
 
   sslsplit:
     build:
       context: .
-      dockerfile: Dockerfile.sslsplit
-    image: sslsplit
+      dockerfile: Dockerfile
+    image: http2tlsproxy:latest
     volumes:
       - ./pcapfiles/:/pcapfiles/
-      - ./backend-ssl/:/ssl/
+      # - ./backend-ssl/:/ssl/
+      - ./CA-ssl/:/ssl/
+      - ./sslproxy.conf:/sslproxy.conf
     networks:
       - backend
-    command: sslsplit -D -k /ssl/nginx-selfsigned.key -c /ssl/nginx-selfsigned.crt http 127.0.0.1 8080 orf.at 443
+    command: sslsplit -D -k /ssl/ca.key -c /ssl/ca.crt -X /pcapfiles/capture.pcap https 0.0.0.0 8080 backend 443
+    # command: sslproxy -f /sslproxy.conf https 0.0.0.0 443 up:56712 ua:192.168.0.160 backend 443
     ports:
       - "8080:8080"
 
